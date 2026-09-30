@@ -1,0 +1,45 @@
+# Main large-scale benchmark (controlled access; paper split). Same split, fragments, model, budget, seeds and early stopping for every arm;
+# only the locus representation changes. Hyper-parameters are fixed a priori (literature defaults), not tuned per arm.
+name: hra003209_main
+dataset: hra003209
+model: hierarchical_mil
+representations: [functional, methylation_only, position_only, random, functional_shuffled]
+seeds: [17, 42, 97]
+folds: [0]                     # official train/test split
+
+representation_projection:     # common label-free PCA of every locus embedding (fitted on the store, not the data)
+  type: pca
+  dim: 64
+  fit_loci: 200000
+  seed: 0
+
+training:
+  samples_per_step: 8
+  fragments_per_bag: 4096
+  bags_per_sample_per_epoch: 4
+  max_epochs: 100
+  patience: 15
+  monitor: val_macro_f1
+  lr: 5.0e-4
+  weight_decay: 0.05
+  warmup_frac: 0.03
+  grad_clip: 1.0
+  label_smoothing: 0.1
+  class_balanced: true
+  val_max_fragments: 65536     # fixed seeded subset per validation sample (identical across arms)
+  eval_chunk: 65536
+  eval_seed: 0
+  gpu_table_max_gb: 4.0
+
+unseen_locus:                  # optional protocol (not primary): fraction > 0 holds out loci from training
+  fraction: 0.0
+  seed: 0
+
+comparisons:                   # (a, b): Δ = a - b, paired patient-level bootstrap
+  - [functional, methylation_only]
+  - [functional, random]
+  - [functional, functional_shuffled]
+  - [functional, position_only]
+  - [functional, ntv3_pre]
+  - [functional, sequence]
+bootstrap: {n_boot: 2000, n_perm: 2000}

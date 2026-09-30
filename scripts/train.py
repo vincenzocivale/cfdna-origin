@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
+"""Train + evaluate ONE run (experiment, representation, seed, fold). Writes the full run directory.
+
+  python scripts/train.py --experiment gse149438_main --representation functional --seed 17 --fold 0
+"""
+from __future__ import annotations
+
 import argparse
-from pathlib import Path
 
-from cfdna_too.training.run import run
+from cfdna_origin.config import load_experiment
+from cfdna_origin.experiments.runner import run_one
 
-ROOT = Path(__file__).resolve().parents[1]
-ap = argparse.ArgumentParser()
-ap.add_argument("--arm", choices=["functional", "random", "none"], required=True)
-ap.add_argument("--seed", type=int, default=17)
-ap.add_argument("--steps", type=int, default=20000)
-ap.add_argument("--batch", type=int, default=2048)
-ap.add_argument("--lr", type=float, default=1e-3)
-ap.add_argument("--d-model", type=int, default=192)
-ap.add_argument("--n-layers", type=int, default=3)
-ap.add_argument("--eval-every", type=int, default=2000)
-ap.add_argument("--eval-reads", type=int, default=100000)
-ap.add_argument("--embedding-h5", default="data/functional_pca_genomewide_hg38.h5")
-a = ap.parse_args()
-cfg = dict(root=str(ROOT), splits=str(ROOT / "data/meta/splits.parquet"), reads=str(ROOT / "data/reads"), out=str(ROOT / "outputs"),
-           arm=a.arm, seed=a.seed, steps=a.steps, batch=a.batch, lr=a.lr, d_model=a.d_model, n_layers=a.n_layers,
-           eval_every=a.eval_every, eval_reads=a.eval_reads, embedding_h5=a.embedding_h5)
-r = run(cfg)
-print({k: v for k, v in r.items() if k in ("arm", "seed", "best_val_read_macro_f1", "test")})
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--experiment", required=True, help="name in configs/experiments or a YAML path")
+    ap.add_argument("--representation", required=True)
+    ap.add_argument("--seed", type=int, required=True)
+    ap.add_argument("--fold", type=int, default=0)
+    ap.add_argument("--device", default=None)
+    ap.add_argument("--force", action="store_true", help="re-run even if RUN_COMPLETE.json exists")
+    args = ap.parse_args()
+    exp = load_experiment(args.experiment)
+    if args.representation not in exp["representations"]:
+        raise SystemExit(f"{args.representation!r} not in experiment representations {list(exp['representations'])}")
+    run_one(exp, args.representation, args.seed, args.fold, device=args.device, force=args.force)
+
+
+if __name__ == "__main__":
+    main()

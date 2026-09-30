@@ -1,0 +1,44 @@
+# GSE149438 / PRJNA628686 — EpiPanGI Dx (Kandimalla et al., Clin Cancer Res 2021;27:6135). Public.
+# 300 plasma cfDNA samples, one per patient; targeted bisulfite capture (SeqCap Epi, 67,832 DMRs), paired-end.
+name: gse149438
+access: public
+genome_build: GRCh38            # FASTQ re-aligned to GRCh38 (GEO processed files are hg19 per-CpG tables: not used)
+sample_type: plasma_cfdna
+meta_dir: "{data_root}/gse149438/meta"
+raw_dir: "{data_root}/gse149438/raw"
+processed_dir: "{data_root}/gse149438/processed"
+contigs: [chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10, chr11, chr12, chr13, chr14, chr15, chr16,
+          chr17, chr18, chr19, chr20, chr21, chr22]   # autosomes only: sex chromosomes would leak sex (class-imbalanced)
+
+label_scheme: esophageal_merged   # the paper's multi-cancer protocol; switch to esophageal_split to keep ESCC/EAC
+label_schemes:
+  esophageal_merged:
+    classes: [Healthy, Colorectal, Pancreatic, Hepatocellular, Gastric, Esophageal]
+    map: {Normal: Healthy, CRC: Colorectal, PDAC: Pancreatic, HCC: Hepatocellular, GC: Gastric, ESCC: Esophageal, EAC: Esophageal}
+  esophageal_split:
+    classes: [Healthy, Colorectal, Pancreatic, Hepatocellular, Gastric, ESCC, EAC]
+    map: {Normal: Healthy, CRC: Colorectal, PDAC: Pancreatic, HCC: Hepatocellular, GC: Gastric, ESCC: ESCC, EAC: EAC}
+
+split:
+  strategy: stratified_kfold       # no per-sample split was published (paper: repeated random 70/30)
+  n_folds: 5
+  val_fraction: 0.2                # of the non-test patients of each fold
+  seed: 20260930                   # split seed: independent of training seeds, never tuned
+  stratify_by: [label, batch]      # batch = KRp1/KRp2 title prefix, strongly aliased with class
+
+fragments:
+  min_cpgs: 3
+  max_cpgs: 32                     # longer fragments truncated to their first 32 CpGs (position order)
+
+preprocessing:                     # FASTQ -> fragments (scripts/prepare_gse149438.py)
+  trim:                            # Swift Accel-Methyl adaptase tail (standard guidance; paper's exact trimming unpublished)
+    clip_r1: 10
+    clip_r2: 15
+    three_prime_clip_r1: 10
+    three_prime_clip_r2: 10
+  bismark:
+    parallel: 4
+    extra: ""                      # directional library (default Bismark mode)
+  min_mapq: 20
+  require_proper_pair: true
+  keep_dedup_bam: false            # delete per-sample BAMs after fragment extraction (disk)

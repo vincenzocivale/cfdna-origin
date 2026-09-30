@@ -1,20 +1,25 @@
 # CLAUDE.md
 
 ## Purpose
-Train and evaluate a read-level tissue/cell-type-of-origin classifier for cfDNA WGBS reads. Each read is a set of
-CpGs: (frozen locus embedding, methylation state 0/1, relative position) -> set encoder -> class logits.
-Spin-off of `../CpGRepresentationBenchmark` (thesis: functional-annotation locus representations beat those
-used in the literature). This repo consumes that repo's artifacts; it does not modify them.
+Downstream benchmark for CpGRepresentationBenchmark. Question: do frozen functional (ENCODE) CpG representations
+beat sequence-derived ones (and methylation-only) for **real plasma cfDNA sample -> tissue/cancer-of-origin**?
+Datasets: GSE149438 (public, targeted bisulfite) and HRA003209 (MONITOR, controlled, EM-seq WMS).
+This repo consumes the benchmark repo's representation artifacts; it does not rebuild or modify them.
 
 ## Invariants
-- Locus embedding is `native_frozen`: never fine-tuned; only the classifier is trained.
-- Split by DONOR, never by read (reads from one donor/sample must not span train and test).
-- Fail explicitly if a read's CpGs are outside the embedding's locus universe; never silently narrow it.
-- Same classifier, split, and budget for every embedding arm; only the embedding changes.
-- Real cfDNA has no per-read labels: evaluate on in-silico mixtures and sample-level fractions, not per-read accuracy.
+- Representations are frozen artifacts (canonical `/cpg_idx` + `/embedding` HDF5) behind `LocusEmbeddingStore`;
+  never fine-tuned, never a model parameter. The only representation-dependent module is the input adapter, and a
+  common label-free PCA (r=64) keeps trainable parameters identical across arms.
+- Same samples, split, fragments, preprocessing, model, budget, seeds, early stopping for every arm; hyper-parameters
+  are fixed a priori, never tuned per arm.
+- Supervision is sample-level (MIL). Never copy a sample label onto its reads; never evaluate per read.
+- Split by patient, deterministic from the split seed, written once (assignment hash) and reused. Model selection on
+  validation only; test labels hidden (`LabelGuard`) until the best checkpoint is reloaded; test evaluated once.
+- Fail explicitly on loci outside a representation's universe, on missing data/artifacts; never fabricate samples.
+- Autosomes only by default (sex-chromosome confounding). Record batch/hospital; report per batch.
+- Synthetic data only in unit tests. Nothing large under the repo; paths via `configs/paths.local.yaml`.
 
 ## Layout
-- `src/cfdna_too/data/`: pat parsing, CpG index -> locus mapping, read table, donor splits, mixtures
-- `src/cfdna_too/models/`: set encoder + classifier
-- `src/cfdna_too/training/`, `evaluation/`
-- `scripts/`: entry points; `configs/`: paths and experiment YAMLs
+`src/cfdna_origin/{data,representations,models/{fragment,sample},training,evaluation,experiments}`,
+`scripts/` entry points, `configs/{datasets,representations,models,experiments}`, `docs/`, `legacy/` (provenance).
+Tests: `python -m pytest -q` (CPU, includes an end-to-end smoke test).

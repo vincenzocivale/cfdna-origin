@@ -1,0 +1,4 @@
+# No locus representation: CpG tokens carry only methylation state + within-fragment geometry.
+name: methylation_only
+kind: none
+family: baseline

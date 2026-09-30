@@ -1,0 +1,7 @@
+# Fragment-encoder ablation: Deep Sets (mean+max) fragment encoder, same aggregator as the primary model.
+name: deepsets_mil
+d_model: 64
+token: {dropout: 0.1, keep_min: 3, use_methylation_state: true}
+fragment_encoder: {type: deepsets, hidden: 128, dropout: 0.1}
+aggregator: {type: gated_attention, attn_dim: 32, class_branches: true, instance_dropout: 0.1}
+head_dropout: 0.25

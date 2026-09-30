@@ -1,0 +1,5 @@
+# Coordinate code (chromosome one-hot + multi-scale sinusoids of the position): locus identity/proximity only.
+name: position_only
+kind: position
+dim: 256
+family: control

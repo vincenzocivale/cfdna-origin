@@ -1,0 +1,10 @@
+# Control: the functional vectors permuted across the dataset's observed loci (same marginal distribution,
+# locus-to-annotation link destroyed). A genuine functional gain must beat this arm, not only `random`.
+name: functional_shuffled
+kind: hdf5
+path: "{representations_root}/functional_pca_genomewide_hg38.h5"
+id_key: cpg_idx
+embedding_key: embedding
+normalization: none   # native scale; the experiment-level PCA centres and rescales (not data-derived)
+shuffle_loci_seed: 1
+family: control

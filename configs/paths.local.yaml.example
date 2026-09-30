@@ -1,0 +1,5 @@
+# Copy to configs/paths.local.yaml and adapt. Example for a machine with a large scratch volume:
+data_root: /scratch/$USER/cfdna-origin
+outputs_root: /scratch/$USER/cfdna-origin/outputs
+representations_root: /scratch/$USER/representations   # holds functional_pca_genomewide_hg38.h5, ...
+benchmark_repo: ../CpGRepresentationBenchmark

@@ -1,0 +1,37 @@
+# HRA003209 / PRJCA012255 — MONITOR cohort, THEMIS (Bie et al., Nat Commun 2023;14:6042). CONTROLLED ACCESS
+# (NGDC GSA-Human, DAC HDAC001831). Low-pass whole-methylome EM-seq, 1277 plasma samples (497 healthy, 780 cancers).
+# The paper's participant-level Training/Test assignment (Supplementary Data 4) is used as the official split.
+name: hra003209
+access: controlled
+genome_build: GRCh38               # published BAMs are Bismark/hg19: CpG coordinates are lifted to GRCh38 (see prepare)
+source_genome_build: hg19
+sample_type: plasma_cfdna
+meta_dir: "{data_root}/hra003209/meta"
+raw_dir: "{data_root}/hra003209/raw"          # expected: raw/<bam_run>.bam  (e.g. raw/HRR775039.bam)
+processed_dir: "{data_root}/hra003209/processed"
+liftover_chain: "{reference_root}/hg19ToHg38.over.chain.gz"
+contigs: [chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10, chr11, chr12, chr13, chr14, chr15, chr16,
+          chr17, chr18, chr19, chr20, chr21, chr22]
+
+label_scheme: paper
+label_schemes:
+  paper:
+    classes: [Healthy, Lung, Colorectal, Pancreatic, Gastric, Hepatocellular, Breast, Esophageal]
+    map: {HEALTHY: Healthy, NSCLC: Lung, COREAD: Colorectal, PAAD: Pancreatic, GAC: Gastric, HCC: Hepatocellular,
+          BRCA: Breast, ESCA: Esophageal}
+
+split:
+  strategy: official               # Supplementary Data 4 "Group": Training / Test (7:3 random, participant level)
+  val_fraction: 0.15               # carved from the official training patients
+  seed: 20260930
+  stratify_by: [label]
+  # hospital (1-6) is aliased with class (breast only from hospital 1; healthy only from 2-3): report per hospital
+
+fragments:
+  min_cpgs: 3
+  max_cpgs: 32
+  max_eval_fragments: 1000000      # ~2x WGS: fixed seeded subset per sample at evaluation, identical for every arm
+
+preprocessing:
+  min_mapq: 20
+  require_proper_pair: true

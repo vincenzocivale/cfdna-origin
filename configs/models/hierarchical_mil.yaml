@@ -1,0 +1,21 @@
+# Primary architecture (docs/ARCHITECTURE_REVIEW.md §4): SAB + PMA-1 fragment encoder -> class-branch gated-attention
+# MIL (Ilse 2018 / CLAM 2021). ~6-8e4 trainable parameters; identical across arms under the common PCA-r projection.
+name: hierarchical_mil
+d_model: 64
+token:
+  dropout: 0.1                 # CpG-token dropout (training only), keeps >= keep_min tokens
+  keep_min: 3
+  use_methylation_state: true  # false = "coverage only" ablation
+fragment_encoder:
+  type: set_attention
+  n_layers: 1
+  n_heads: 4
+  ffn_dim: 128
+  dropout: 0.1
+  readout: pma
+aggregator:
+  type: gated_attention
+  attn_dim: 32
+  class_branches: true
+  instance_dropout: 0.1
+head_dropout: 0.25

@@ -1,0 +1,7 @@
+# Ablation: Set Transformer PMA pooling (1 seed x 4 heads) over fragments, streamed exactly per head.
+name: pma_pool
+d_model: 64
+token: {dropout: 0.1, keep_min: 3, use_methylation_state: true}
+fragment_encoder: {type: set_attention, n_layers: 1, n_heads: 4, ffn_dim: 128, dropout: 0.1, readout: pma}
+aggregator: {type: pma, n_heads: 4, n_seeds: 1, instance_dropout: 0.1}
+head_dropout: 0.25

@@ -3,17 +3,23 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cfdna-tissue-origin"
-version = "0.1.0"
-description = "Read-level tissue-of-origin classification of cfDNA WGBS reads from frozen CpG-locus representations"
+name = "cfdna-origin"
+version = "0.2.0"
+description = "Benchmark of frozen CpG-locus representations for real plasma cfDNA tissue/cancer-of-origin classification"
 requires-python = ">=3.10"
-dependencies = ["numpy", "pandas", "pyarrow", "h5py", "torch", "pyyaml", "scikit-learn", "tqdm"]
+license = {text = "MIT"}
+dependencies = ["numpy", "pandas", "pyarrow", "h5py", "torch>=2.1", "pyyaml", "scikit-learn", "openpyxl"]
 
 [project.optional-dependencies]
+bam = ["pysam"]
 dev = ["pytest", "ruff"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
 [tool.ruff]
-line-length = 110
+line-length = 120

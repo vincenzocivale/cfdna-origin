@@ -1,11 +1,13 @@
 data/*
 !data/README.md
-!data/meta/
-logs_*.txt
 outputs/
 logs/
+configs/paths.local.yaml
 __pycache__/
 *.egg-info/
 .venv*/
+.pytest_cache/
 *.h5
-*.pat.gz
+*.bam
+*.fastq.gz
+*.fq.gz

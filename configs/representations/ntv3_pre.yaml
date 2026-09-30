@@ -1,0 +1,10 @@
+# NTv3 650M PRE (InstaDeepAI/NTv3_650M_pre; never POST): 32,768 bp GRCh38 window, final decoder representation, mean
+# of the two central bins (1536-d). Must be materialised in CpGRepresentationBenchmark
+# (src/cpg_repr_benchmark/representations/providers/ntv3_pre.py) as a canonical /cpg_idx + /embedding HDF5 covering at
+# least the loci of the target dataset (only a chr1 atlas exists at the time of writing).
+name: ntv3_pre
+kind: hdf5
+path: "{representations_root}/ntv3_pre_hg38.h5"
+normalization: none   # native scale; the experiment-level PCA centres and rescales (not data-derived)
+family: sequence
+availability: "Not yet materialised: produce it with the CpGRepresentationBenchmark NTv3-pre provider (panel-restricted is enough)."
