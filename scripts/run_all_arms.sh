@@ -1,7 +1,7 @@
 #!/bin/bash
 # functional / none / random x 3 seeds, sequential (each arm holds a ~15GB frozen table on the GPU).
 cd "$(dirname "$0")/.."
-source /data2/home/vcivale/miniconda3/etc/profile.d/conda.sh && conda activate cpg-repr-benchmark
+# Activate your environment first (e.g. conda activate cpg-repr-benchmark).
 export PYTHONPATH=src CUDA_VISIBLE_DEVICES=0
 for seed in 17 42 97; do
   for arm in functional none random; do

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -20,7 +21,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-MP = Path("/data2/home/vcivale/projects/methylation/MehylPredictor")
+MP = Path(os.environ.get("METHYLPREDICTOR_DIR", Path(__file__).resolve().parents[2] / "MehylPredictor"))
 sys.path.insert(0, str(MP / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
