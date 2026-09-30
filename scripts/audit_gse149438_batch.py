@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""GSE149438 batch-confounding audit (KRp1 / KRp2 GEO title prefix) -> docs/GSE149438_BATCH_AUDIT.md + JSON.
+
+Uses only metadata (diagnosis, batch, age) and label-free per-sample summaries of the processed-beta data (number of
+observed CpGs, mean/variance of beta, coverage). No model is trained here.
+
+  python scripts/audit_gse149438_batch.py [--min-per-batch 8]
+"""
+from __future__ import annotations
+
+import argparse
+import json
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+from cfdna_origin.config import REPO_ROOT, load_component, load_paths, resolve_path
+from cfdna_origin.data.schema import apply_label_scheme
+
+COVARIATES = ["n_observed_loci", "missing_fraction", "mean_beta", "beta_variance", "mean_coverage", "median_coverage"]
+
+
+def cramers_v(table: pd.DataFrame) -> float:
+    chi2 = stats.chi2_contingency(table, correction=False)[0]
+    n = table.to_numpy().sum()
+    return float(np.sqrt(chi2 / (n * (min(table.shape) - 1))))
+
+
+def contingency_tests(table: pd.DataFrame) -> dict:
+    chi2, p, dof, expected = stats.chi2_contingency(table)
+    per_class = {}
+    for c in table.index:
+        a = table.loc[c].to_numpy(); b = table.drop(index=c).sum().to_numpy()
+        odds, pf = stats.fisher_exact(np.vstack([a, b]))
+        per_class[c] = {"counts": dict(zip(table.columns, a.tolist())), "fisher_p": float(pf), "odds_ratio": float(odds)}
+    return {"chi2": float(chi2), "chi2_p": float(p), "dof": int(dof), "cramers_v": cramers_v(table),
+            "min_expected_count": float(expected.min()),
+            "chi2_valid": bool((expected >= 5).mean() >= 0.8 and expected.min() >= 1), "fisher_per_class": per_class}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--min-per-batch", type=int, default=8)
+    args = ap.parse_args()
+    paths = load_paths()
+    cfg = load_component("datasets", "gse149438_processed_beta")
+    processed = resolve_path(cfg["processed_dir"], paths)
+    samples = pd.read_parquet(processed / "samples.parquet")
+    out = {"n_samples": int(len(samples))}
+    raw = pd.crosstab(samples.diagnosis, samples.batch)
+    merged_df, _ = apply_label_scheme(samples, cfg["label_schemes"]["esophageal_merged"])
+    merged = pd.crosstab(merged_df.label, merged_df.batch)
+    out["contingency_diagnosis"] = raw.to_dict("index")
+    out["contingency_merged"] = merged.to_dict("index")
+    out["tests_diagnosis"] = contingency_tests(raw)
+    out["tests_merged"] = contingency_tests(merged)
+    out["deterministic"] = {c: merged.columns[(merged.loc[c] > 0).to_numpy()].tolist()[0]
+                            for c in merged.index if (merged.loc[c] > 0).sum() == 1}
+    out["missing_combinations"] = [(c, b) for c in raw.index for b in raw.columns if raw.loc[c, b] == 0]
+    robust = merged.index[(merged >= args.min_per_batch).all(1)].tolist()
+    out["protocols"] = {
+        "all_classes_original": {"classes": merged.index.tolist(), "n": int(merged.to_numpy().sum())},
+        "exclude_crc": {"classes": [c for c in merged.index if c != "Colorectal"],
+                        "n": int(merged.drop(index="Colorectal").to_numpy().sum())},
+        "batch_robust_subset": {"rule": f">= {args.min_per_batch} patients in every batch", "classes": robust,
+                                "n": int(merged.loc[robust].to_numpy().sum()),
+                                "per_batch": merged.loc[robust].to_dict("index"),
+                                "evaluation": "cross-batch (train one batch, test the other)"},
+    }
+    cov = {}
+    for v in COVARIATES + ["age"]:
+        x1 = samples.loc[samples.batch == "KRp1", v].dropna(); x2 = samples.loc[samples.batch == "KRp2", v].dropna()
+        groups = [g[v].dropna() for _, g in merged_df.groupby("label")]
+        cov[v] = {"KRp1_median": float(x1.median()), "KRp2_median": float(x2.median()),
+                  "batch_mannwhitney_p": float(stats.mannwhitneyu(x1, x2).pvalue),
+                  "class_kruskal_p": float(stats.kruskal(*groups).pvalue),
+                  # within-class batch effect (classes present in both batches)
+                  "within_class_batch_p": {c: float(stats.mannwhitneyu(g.loc[g.batch == "KRp1", v].dropna(),
+                                                                        g.loc[g.batch == "KRp2", v].dropna()).pvalue)
+                                           for c, g in merged_df.groupby("label") if g.batch.nunique() == 2
+                                           and g[v].notna().sum() > 3}}
+    out["covariates"] = cov
+    out["by_class_batch_median"] = merged_df.groupby(["label", "batch"])[COVARIATES].median().round(4).reset_index().to_dict("records")
+    audit_dir = processed / "audits"; audit_dir.mkdir(exist_ok=True)
+    (audit_dir / "batch_audit.json").write_text(json.dumps(out, indent=2, default=str))
+
+    t = out["tests_merged"]
+    lines = ["# GSE149438 batch-confounding audit", "",
+             "Generated by `scripts/audit_gse149438_batch.py` from metadata and label-free per-sample summaries "
+             f"(JSON: `<data_root>/gse149438_processed_beta/audits/batch_audit.json`). Batch = GEO title prefix KRp1/KRp2 "
+             "(meaning unverified: likely library/sequencing batch).", "",
+             "## Class x batch (published diagnoses)", "", raw.to_markdown(), "",
+             "## Class x batch (esophageal_merged)", "", merged.to_markdown(), "",
+             f"Chi-square test of independence (merged): chi2 = {t['chi2']:.1f}, dof = {t['dof']}, p = {t['chi2_p']:.2e}, "
+             f"Cramér's V = {t['cramers_v']:.2f} (min expected count {t['min_expected_count']:.1f}; "
+             f"asymptotic test {'acceptable' if t['chi2_valid'] else 'questionable -> rely on Fisher tests'}).", "",
+             "Per class vs rest (Fisher exact, 2x2 class x batch):", "",
+             "| class | KRp1 | KRp2 | odds ratio | Fisher p |", "|---|---|---|---|---|"]
+    for c, r in t["fisher_per_class"].items():
+        lines.append(f"| {c} | {r['counts'].get('KRp1', 0)} | {r['counts'].get('KRp2', 0)} | {r['odds_ratio']:.2f} | {r['fisher_p']:.2e} |")
+    lines += ["", "## Deterministic associations and missing combinations", "",
+              f"- Classes found in a single batch: {out['deterministic'] or 'none'}. Any classifier that detects "
+              "the batch predicts these classes' batch membership perfectly, so a batch signal can pass for a class signal.",
+              f"- Missing diagnosis x batch combinations: {out['missing_combinations'] or 'none'}.",
+              "- Healthy is 37/46 KRp1 and Pancreatic 50/74 KRp2: partial aliasing, in opposite directions.", "",
+              "## Label-free per-sample covariates", "",
+              "| covariate | KRp1 median | KRp2 median | batch p (MWU) | class p (Kruskal) |", "|---|---|---|---|---|"]
+    for v, r in cov.items():
+        lines.append(f"| {v} | {r['KRp1_median']:.4g} | {r['KRp2_median']:.4g} | {r['batch_mannwhitney_p']:.2e} | {r['class_kruskal_p']:.2e} |")
+    lines += ["", "## Evaluation protocols", "",
+              f"- **A. all_classes_original**: {out['protocols']['all_classes_original']['classes']} "
+              f"(n = {out['protocols']['all_classes_original']['n']}); patient-level 5-fold CV x 3 repetitions, "
+              "stratified by class x batch where the strata exist. Rare strata fall back to class-only stratification. "
+              "CRC x KRp1 does not exist and is not created.",
+              f"- **B. exclude_crc**: {out['protocols']['exclude_crc']['classes']} (n = {out['protocols']['exclude_crc']['n']}); "
+              "this removes the deterministic CRC-KRp2 association.",
+              f"- **C. batch_robust_subset**: classes with >= {args.min_per_batch} patients in both batches: "
+              f"{robust} (n = {out['protocols']['batch_robust_subset']['n']}). Evaluation is **cross-batch**: train on "
+              "one batch and test on the other, both directions. A model that relies on batch-specific shifts cannot "
+              "transfer. Note that with esophageal_merged, C has the same classes as B but a stricter evaluation.", "",
+              "## Implications", "",
+              "1. Protocol-A results for Colorectal cannot be separated from batch KRp2. Any arm gain driven by CRC must "
+              "be confirmed under B and C.",
+              "2. The batch-prediction negative control (`beta_batchpred_*`) measures how easily each input predicts "
+              "KRp1/KRp2. If `functional` predicts batch much better than `functional_shuffled` / `position_only`, "
+              "a tissue gain could be partly a batch gain.",
+              "3. Per-batch metrics are reported with every benchmark summary (`per_batch.csv`)."]
+    (REPO_ROOT / "docs" / "GSE149438_BATCH_AUDIT.md").write_text("\n".join(lines) + "\n")
+    print("\n".join(lines[:40]))
+
+
+if __name__ == "__main__":
+    main()

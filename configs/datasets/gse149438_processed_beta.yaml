@@ -1,0 +1,34 @@
+# GSE149438 processed per-CpG methylation (GEO supplementary BSMAP methratio tables, hg19 -> GRCh38 liftover).
+# Pilot data mode: sample-level CpG sets {(locus, beta, coverage)}, no reads. Same patients/labels as `gse149438`.
+name: gse149438_processed_beta
+mode: processed_beta
+access: public
+genome_build: GRCh38
+source_genome_build: hg19
+sample_type: plasma_cfdna
+meta_dir: "{data_root}/gse149438/meta"                         # samples_meta.tsv from prepare_gse149438.py metadata
+geo_tar: "{data_root}/gse149438/geo_suppl/GSE149438_RAW.tar"   # read in place (members streamed), never extracted
+processed_dir: "{data_root}/gse149438_processed_beta"
+liftover_chain: "{reference_root}/hg19ToHg38.over.chain.gz"
+hg38_fasta: "{reference_root}/hg38/hg38.fa.gz"
+hg38_cpg_cache: "{reference_root}/hg38/cpg_keys_autosomes.npy"
+contigs: [chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10, chr11, chr12, chr13, chr14, chr15, chr16,
+          chr17, chr18, chr19, chr20, chr21, chr22]
+min_coverage: 4                  # = the threshold already applied by the authors (no row below 4 in the files)
+required_representations: [functional]   # final loci must lie in these stores' universes (common to all arms)
+
+label_scheme: esophageal_merged
+label_schemes:
+  esophageal_merged:
+    classes: [Healthy, Colorectal, Pancreatic, Hepatocellular, Gastric, Esophageal]
+    map: {Normal: Healthy, CRC: Colorectal, PDAC: Pancreatic, HCC: Hepatocellular, GC: Gastric, ESCC: Esophageal, EAC: Esophageal}
+  esophageal_split:
+    classes: [Healthy, Colorectal, Pancreatic, Hepatocellular, Gastric, ESCC, EAC]
+    map: {Normal: Healthy, CRC: Colorectal, PDAC: Pancreatic, HCC: Hepatocellular, GC: Gastric, ESCC: ESCC, EAC: EAC}
+
+split:
+  strategy: stratified_kfold
+  n_folds: 5
+  val_fraction: 0.2
+  seed_from_run: true            # repeated CV: repetition r uses split seed = training seed (17, 42, 97)
+  stratify_by: [label, batch]

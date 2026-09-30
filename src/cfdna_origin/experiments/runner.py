@@ -55,7 +55,9 @@ def split_path(exp: dict, paths: dict) -> Path:
 def representation_table(exp: dict, rep_name: str, store: FragmentStore, paths: dict, log=print):
     rep_cfg = exp["representations"][rep_name]
     proj = exp.get("representation_projection")
-    out = paths["cache_root"] / "representations" / exp["dataset"]["name"] / f"{rep_name}__{projection_tag(proj)}"
+    # the key covers everything that changes the table (artifact path, shuffle seed, dims, ...) and the projection
+    key = stable_hash({"representation": rep_cfg, "projection": proj})[:10]
+    out = paths["cache_root"] / "representations" / exp["dataset"]["name"] / f"{rep_name}__{projection_tag(proj)}__{key}"
     if not (out / "manifest.json").exists():
         log(f"materialising {rep_name} on {len(store.loci)} loci -> {out}")
         materialize(build_store(rep_cfg, paths), np.asarray(store.loci), out, dataset_manifest_sha=store.manifest_sha256,

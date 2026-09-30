@@ -1,0 +1,8 @@
+# Architecture selection (run ONCE, representation-neutral arms only, validation only; test never predicted).
+base: _beta_common
+model: cpgset_deepsets
+protocol: {name: all_classes_original}
+representations: [methylation_only, position_only]
+baseline_arms: []
+seeds: [17]
+selection_only: true

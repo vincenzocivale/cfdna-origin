@@ -1,0 +1,10 @@
+# Written by scripts/select_beta_architecture.py (docs/BETA_ARCHITECTURE_SELECTION.md). Frozen for all arms.
+name: cpgset_selected
+arch: deepsets
+d_model: 32
+hidden: 64
+n_heads: 4
+dropout: 0.1
+head_dropout: 0.25
+use_coverage: true
+selected_from: cpgset_deepsets

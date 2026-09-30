@@ -1,0 +1,9 @@
+# Negative control (NOT a primary task): predict batch KRp1 vs KRp2 from the same inputs (exclude_crc samples).
+base: _beta_common
+model: cpgset_selected
+task: batch
+protocol: {name: exclude_crc, exclude_classes: [Colorectal]}
+representations: [methylation_only, functional, functional_shuffled]
+seeds: [17]                    # reduced: 1 repetition (5 folds)
+baseline_arms: [summary_only]
+comparisons: [[functional, methylation_only], [functional, functional_shuffled], [functional, position_only]]

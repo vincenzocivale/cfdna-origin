@@ -1,0 +1,9 @@
+# Processed-beta benchmark, protocol B: CRC removed (CRC is 40/40 in batch KRp2). Architecture frozen by
+# docs/BETA_ARCHITECTURE_SELECTION.md (`configs/models/cpgset_selected.yaml` is written by scripts/select_beta_architecture.py); identical for every arm.
+base: _beta_common
+model: cpgset_selected
+protocol: {name: exclude_crc, exclude_classes: [Colorectal]}
+representations: [methylation_only, position_only, functional_shuffled, functional, ntv3_pre]   # `random` dropped to save compute (identity/distribution controls covered by position_only + functional_shuffled)
+baseline_arms: [summary_only, dmr_logistic, dmr_xgboost]
+seeds: [17]                    # reduced: 1 repetition (5 folds) to save compute
+attribution: {arms: [functional], seed: 17, attribution_top_k: 200}

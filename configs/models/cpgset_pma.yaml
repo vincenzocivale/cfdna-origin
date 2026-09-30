@@ -1,0 +1,9 @@
+# CpG-set -> sample model for the processed-beta pilot (src/cfdna_origin/models/cpgset.py): arch = pma.
+name: cpgset_pma
+arch: pma
+d_model: 32
+hidden: 64
+n_heads: 4
+dropout: 0.1
+head_dropout: 0.25
+use_coverage: true

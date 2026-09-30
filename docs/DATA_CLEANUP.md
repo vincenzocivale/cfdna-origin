@@ -20,3 +20,8 @@ in-repo deletions were git-tracked files that can be regenerated or are obsolete
 | `<data_root>/scratch/` | <100 MB | research notes, ENCODE query tables | KEEP (small) | inputs of `docs/DATASETS.md` and `docs/ENCODE_LEAKAGE_AUDIT.md` |
 | `<data_root>/cache/representations/` | about 190 MB per arm on 1.46M loci (PCA-64 fp16) | materialised tables | DELETE freely | regenerable in 10-40 s per arm |
 | Old server: raw Loyfer PAT (93 GB), `data/ext_store` (4.7 GB), `locus_features_v1` store | — | inputs to rebuild the functional artifact | KEEP on the old server | needed for `functional_no_target_tissue` (see `ENCODE_LEAKAGE_AUDIT.md`) |
+| `<data_root>/gse149438/geo_suppl/GSE149438_RAW.tar` | 6.1 GB | GEO processed methratio tables (hg19), raw public data | **KEEP** | input of the processed-beta pilot; read in place, never extracted |
+| `<data_root>/gse149438_processed_beta/` | 2.5 GB | beta/coverage matrices 300 x 2,049,700 (GRCh38), manifests | KEEP | regenerable in about 5 min (`prepare_gse149438_beta.py`) |
+| `<data_root>/cache/representations/gse149438_processed_beta/` | 262 MB per arm (PCA-64 fp16) | materialised tables | DELETE freely | regenerable |
+| `<data_root>/outputs/gse149438_processed_beta/` | about 1-2 GB (estimate; mostly predictions and checkpoints) | pilot runs | KEEP | results of this phase |
+| `<data_root>/pylibs/` | 228 MB | xgboost (no deps) | KEEP | optional dependency for `dmr_xgboost` |

@@ -1,0 +1,8 @@
+# Negative control (NOT a primary task): predict batch KRp1 vs KRp2 from the same inputs (all_classes_original samples).
+base: _beta_common
+model: cpgset_selected
+task: batch
+protocol: {name: all_classes_original}
+representations: [methylation_only, position_only, functional, functional_shuffled]
+baseline_arms: [summary_only]
+comparisons: [[functional, methylation_only], [functional, functional_shuffled], [functional, position_only]]

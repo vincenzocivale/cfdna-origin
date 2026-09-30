@@ -8,6 +8,8 @@ Strategies:
 - `stratified_kfold`: outer K folds over patients (each patient is test exactly once); validation is a stratified
   fraction of the remaining patients.
 - `official`: use the dataset's `official_split` column (train/test); validation carved from train patients.
+- `cross_batch`: fold k tests on batch k and trains on the other batch(es) (validation carved from the training
+  batch): a batch-robustness protocol, only meaningful for classes present in every batch.
 """
 from __future__ import annotations
 
@@ -71,11 +73,31 @@ def make_splits(samples: pd.DataFrame, *, strategy: str, seed: int, n_folds: int
         val = _carve_val(pats[pats.patient_id.map(off) == "train"], val_fraction, seed)
         for pid in pats.patient_id:
             rows.append((0, pid, "test" if off[pid] == "test" else "val" if pid in val else "train"))
+    elif strategy == "cross_batch":
+        batch_of = samples.groupby("patient_id").batch.agg(lambda b: set(b))
+        if (batch_of.map(len) > 1).any():
+            raise SplitError("a patient has samples in several batches")
+        batch_of = batch_of.map(lambda b: next(iter(b)))
+        batches = sorted(batch_of.unique())
+        per = samples.groupby(["label", "batch"]).patient_id.nunique().unstack(fill_value=0)
+        if (per == 0).any().any():
+            raise SplitError(f"cross_batch needs every class in every batch; missing combinations:\n{per}")
+        for fold, test_batch in enumerate(batches):
+            tr = pats[pats.patient_id.map(batch_of) != test_batch]
+            val = _carve_val(tr.assign(stratum=tr.label), val_fraction, seed + fold)
+            for pid in pats.patient_id:
+                rows.append((fold, pid, "test" if batch_of[pid] == test_batch else "val" if pid in val else "train"))
     else:
         raise SplitError(f"unknown split strategy {strategy!r}")
     assign = pd.DataFrame(rows, columns=["fold", "patient_id", "split"])
     out = samples[["sample_id", "patient_id", "label"]].merge(assign, on="patient_id")
     return out.sort_values(["fold", "sample_id"]).reset_index(drop=True)
+
+
+def confounded_classes(samples: pd.DataFrame, by: str = "batch") -> dict:
+    """Classes observed in a single level of `by` (e.g. CRC only in KRp2): stratification cannot fix these."""
+    per = samples.groupby("label")[by].agg(lambda b: sorted(set(b)))
+    return {c: v[0] for c, v in per.items() if len(v) == 1}
 
 
 def assignment_hash(splits: pd.DataFrame) -> str:
@@ -99,6 +121,7 @@ def load_or_create_splits(path: Path, samples: pd.DataFrame, spec: dict) -> tupl
                          val_fraction=spec.get("val_fraction", 0.2), stratify_by=spec.get("stratify_by", ["label"]))
     check_no_leakage(splits)
     manifest = {"spec": spec, "assignment_sha256": assignment_hash(splits), "n_samples": int(splits.sample_id.nunique()),
+                "classes_confounded_with_batch": confounded_classes(samples) if "batch" in samples else {},
                 "folds": {int(f): g.groupby("split").label.value_counts().unstack(fill_value=0).to_dict("index")
                           for f, g in splits.groupby("fold")}}
     if path.exists():

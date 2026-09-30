@@ -1,0 +1,36 @@
+# Shared settings of the processed-beta pilot (included by the beta_* experiments; not an experiment itself).
+dataset: gse149438_processed_beta
+representation_projection: {type: pca, dim: 64, fit_loci: 200000, seed: 0}   # 32 / 64 / 128 supported; one value for all arms
+seeds: [17, 42, 97]
+folds: [0, 1, 2, 3, 4]
+training:
+  samples_per_step: 8
+  tokens_per_sample: 16384
+  bags_per_sample_per_epoch: 4
+  max_epochs: 60
+  patience: 12
+  monitor: val_macro_f1
+  lr: 1.0e-3
+  weight_decay: 0.05
+  warmup_frac: 0.03
+  grad_clip: 1.0
+  label_smoothing: 0.1
+  val_max_tokens: 262144      # fixed seeded CpG subset per validation sample (identical across arms)
+  eval_chunk: 262144          # test: all observed CpGs, streamed exactly
+  eval_seed: 0
+  gpu_table_max_gb: 4.0
+baselines:
+  summary_only: {}
+  dmr_logistic: {max_gap: 150, min_observed_frac: 0.8, n_per_class: 100, min_delta: 0.05, C: 1.0}
+  dmr_xgboost: {max_gap: 150, min_observed_frac: 0.8, n_per_class: 100, min_delta: 0.05, n_estimators: 300,
+                max_depth: 3, learning_rate: 0.05}
+comparisons:
+  - [functional, methylation_only]
+  - [functional, position_only]
+  - [functional, random]
+  - [functional, functional_shuffled]
+  - [functional, ntv3_pre]
+  - [functional, summary_only]
+  - [functional, dmr_logistic]
+  - [functional, dmr_xgboost]
+bootstrap: {n_boot: 2000, n_perm: 2000}

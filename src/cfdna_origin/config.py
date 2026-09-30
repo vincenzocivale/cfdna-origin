@@ -96,6 +96,8 @@ def load_experiment(path_or_name: str | Path, overrides: dict[str, Any] | None =
     if not path.suffix:
         path = config_dir / "experiments" / f"{path_or_name}.yaml"
     exp = read_yaml(path)
+    if "base" in exp:  # shared settings file in the same directory (e.g. _beta_common.yaml)
+        exp = deep_merge(read_yaml(path.parent / f"{exp.pop('base')}.yaml"), exp)
     exp.setdefault("name", path.stem)
     exp["dataset"] = deep_merge(load_component("datasets", exp["dataset"], config_dir), exp.get("dataset_overrides", {}))
     exp["model"] = deep_merge(load_component("models", exp["model"], config_dir), exp.get("model_overrides", {}))

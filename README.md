@@ -43,6 +43,20 @@ weighted F1, top-2 accuracy, per-class sensitivity/specificity/AUROC, confusion 
 **paired patient-level bootstrap** 95% CIs of Δ (e.g. functional − methylation_only) and paired permutation tests.
 Nothing is evaluated per read.
 
+## Current phase: processed-beta pilot (go/no-go before full FASTQ preprocessing)
+This phase uses the authors' public per-CpG methylation tables (hg19, lifted to GRCh38). A sample is its set of
+(locus, beta, coverage) tokens. The phase compares `functional` with `methylation_only`, `summary_only`,
+`position_only`, `random`, `functional_shuffled` and the embedding-free EpiPanGI-style DMR baselines. It does so
+under three protocols (all classes, CRC excluded, cross-batch) plus a batch-prediction negative control.
+- Design: `docs/BETA_BENCHMARK.md`
+- Architecture selection: `docs/BETA_ARCHITECTURE_SELECTION.md`
+- Batch audit: `docs/GSE149438_BATCH_AUDIT.md`
+- Results: `docs/BETA_BENCHMARK_RESULTS.md`
+- Raw-read audits: `docs/MBIAS_AUDIT.md`, `docs/FRAGMENT_STORAGE_AUDIT.md`
+
+The optional `dmr_xgboost` baseline needs `xgboost`. On the development server it is installed with
+`pip install --no-deps --target <data_root>/pylibs xgboost` and put on `PYTHONPATH`.
+
 ## Model
 The model is hierarchical multiple-instance learning (MIL) with sample-level supervision only
 (`docs/ARCHITECTURE_REVIEW.md`):

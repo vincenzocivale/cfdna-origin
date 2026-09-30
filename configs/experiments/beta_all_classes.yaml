@@ -1,0 +1,8 @@
+# Processed-beta benchmark, protocol A: all classes (esophageal_merged). Architecture frozen by
+# docs/BETA_ARCHITECTURE_SELECTION.md (`configs/models/cpgset_selected.yaml` is written by scripts/select_beta_architecture.py); identical for every arm.
+base: _beta_common
+model: cpgset_selected
+protocol: {name: all_classes_original}
+representations: [methylation_only, position_only, functional_shuffled, functional, ntv3_pre]   # `random` dropped to save compute (identity/distribution controls covered by position_only + functional_shuffled)
+baseline_arms: [summary_only, dmr_logistic, dmr_xgboost]
+attribution: {arms: [functional], seed: 17, attribution_top_k: 200}

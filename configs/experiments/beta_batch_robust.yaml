@@ -1,0 +1,11 @@
+# Processed-beta benchmark, protocol C: only classes with >= 8 patients in BOTH batches, evaluated cross-batch
+# (fold 0: test on KRp1, train on KRp2; fold 1: the reverse). No class-batch combination is invented.
+base: _beta_common
+model: cpgset_selected
+protocol:
+  name: batch_robust_subset
+  min_per_batch: 8
+  split: {strategy: cross_batch}
+folds: [0, 1]
+representations: [methylation_only, position_only, functional_shuffled, functional, ntv3_pre]   # `random` dropped to save compute (identity/distribution controls covered by position_only + functional_shuffled)
+baseline_arms: [summary_only, dmr_logistic, dmr_xgboost]
