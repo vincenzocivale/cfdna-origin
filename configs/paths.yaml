@@ -1,0 +1,9 @@
+# Paths to large external artifacts (relative to repo root or absolute).
+benchmark_repo: ../CpGRepresentationBenchmark
+pat_dir: ../CpGRepresentationBenchmark/data/external/wgbs_atlas/hg38_pat
+pat_filelist: ../CpGRepresentationBenchmark/data/external/wgbs_atlas/filelist.txt
+hg38_fasta: ../CpGRepresentationBenchmark/data/external/reference/hg38.fa.gz
+locus_feature_store: ../CpGRepresentationBenchmark/data/external/functional/locus_features_v1
+# Genome-wide (27,078,662 loci, chr1-22) frozen locus embedding, canonical /cpg_idx + /embedding.
+# Built from the feature store by the benchmark repo's PCA projection (to be produced).
+embedding_h5: data/functional_pca_genomewide_hg38.h5

@@ -1,0 +1,11 @@
+data/*
+!data/README.md
+!data/meta/
+logs_*.txt
+outputs/
+logs/
+__pycache__/
+*.egg-info/
+.venv*/
+*.h5
+*.pat.gz
